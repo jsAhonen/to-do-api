@@ -3,12 +3,12 @@ Description: Shared Application Load Balancer for todo-api and todo-ui ECS servi
 
 # Before deployment:
 
-# 1. Replace the placeholder values in the Parameters section:
+# 1. Create a copy of this file with the name `iac-alb.yaml`
+
+# 2. Replace the placeholder values in the Parameters section:
 # <DEFAULT_VPC_ID> - Your default VPC ID
 # <DEFAULT_SUBNET_ID_1> - A subnet ID in your default VPC
 # <DEFAULT_SUBNET_ID_2> - Another subnet ID in your default VPC
-
-# 2. Rename this file as iac-alb.yaml
 
 Parameters:
   VpcId:

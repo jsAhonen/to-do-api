@@ -3,9 +3,11 @@ Description: ECS Fargate deployment for todo-api
 
 # Before deployment:
 
-# 1. Create the ECR repository and push your Docker image there.
+# 1. Create the ECR repository and push your Docker image there. See README for details.
 
-# 2. Replace the placeholder values in the Parameters section:
+# 2. Create a copy of this file with the name `iac.yaml`
+
+# 3. Replace the placeholder values in the Parameters section:
 # <AWS_ACCOUNT_ID> - Your AWS Account ID
 # <REGION_ID> - AWS Region (e.g., us-east-1)
 # <DEFAULT_VPC_ID> - Your default VPC ID
@@ -13,9 +15,7 @@ Description: ECS Fargate deployment for todo-api
 # <DEFAULT_SUBNET_ID_2> - Another subnet ID in your default VPC
 # <ECR_REPO_URI> - The URI of your ECR repository 
 # (e.g., 123456789012.dkr.ecr.us-east-1.amazonaws.com/todo-api:latest)
-# <TODO_API_TARGET_GROUP_ARN> - The EC2 target group ARN
-
-# 3. Rename this file as iac.yaml
+# <TODO_API_TARGET_GROUP_ARN> - The EC2 target group ARN. This is available only AFTER you have deployed `iac-alb.yaml`.
 
 Parameters:
   ECRImageUri:

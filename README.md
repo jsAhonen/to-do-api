@@ -7,6 +7,12 @@ This is the API codebase of the To Do App.
 - Python (see `.python-version` for the current version in use)
 - Django and Django REST Framework
 - Pytest
+- AWS Elastic Container Registry (ECR)
+- AWS Elastic Container Service (ECS)
+- AWS Fargate
+- AWS CloudFormation
+- AWS Application Load Balancer (EC2)
+- AWS CloudFront
 
 ## How to set up the local development environment
 
@@ -128,9 +134,11 @@ You can view the current state of the migrations by running this:
 python manage.py showmigrations
 ```
 
-## Deployment Workflow for todo-api (Django, Docker, ECS Fargate)
+## AWS Deployment
 
-### 1. Prepare AWS Environment
+### Setup
+
+#### Prepare AWS Environment
 
 Install AWS CLI v2
 
@@ -146,7 +154,7 @@ Configure credentials and set the keys and choose a default region (e.g. us-east
 aws configure
 ```
 
-### Build & Push Docker Image
+#### Build & Push Docker Image
 
 Replace the `<region>` and `<account_id>` with the region of your choice and the account id of the AWS account id.
 
@@ -158,9 +166,29 @@ docker tag todo-api:latest <account_id>.dkr.ecr.<region>.amazonaws.com/todo-api:
 docker push <account_id>.dkr.ecr.<region>.amazonaws.com/todo-api:latest
 ```
 
-### 3. Deploy the CloudFormation Stack
+#### Deploy the CloudFormation Stacks
 
-Deploy resources with CloudFormation:
+First you need to configure the IaC and deploy for the Application Load Balancer (ALB) and then configure and deploy the API.
+
+Create a copy of `iac-alb.yaml.template` and name it as `iac-alb.yaml`.
+
+Replace the placeholder values following the instructions in the comment at the beginning of each file.
+
+Deploy the Application Load Balancer with CloudFormation:
+
+```bash
+aws cloudformation deploy \
+  --profile main-admin \
+  --template-file iac-alb.yaml \
+  --stack-name todo-api-stack \
+  --capabilities CAPABILITY_NAMED_IAM
+```
+
+Go to EC2 target groups, and look up the `todo-api-tg` ARN to use it for `iac.yaml`
+
+Do the same for `iac.yaml.template` as you did for `iac-alb.yaml.template`.
+
+Deploy the API with CloudFormation:
 
 ```bash
 aws cloudformation deploy \
@@ -170,7 +198,7 @@ aws cloudformation deploy \
   --capabilities CAPABILITY_NAMED_IAM
 ```
 
-### 4. Run Database Migrations (One-Off Task)
+#### Run Database Migrations
 
 Look up the EC2 security group named `todo-api-sg` and a subnet id and insert them in the placeholders `<sg_id>` and `<subnet_id>` below, and then run the command:
 
@@ -183,19 +211,44 @@ aws ecs run-task \
   --overrides '{"containerOverrides":[{"name":"todo-api","command":["python","manage.py","migrate"]}]}'
 ```
 
-### 5. Access the App
+#### Access the App
 
-Now the task has a public IP through which you can access the admin dashboard:
+The CloudFront has a domain with the `<DNS_NAME>` by which you can access the API
 
 ```code
-http://<PUBLIC_IP>:8000/admin/login
+https://<DNS_NAME>/api
 ```
 
-## Destroy the Deployment
+The admin UI is here
+
+```code
+https://<DNS_NAME>/api/admin/
+```
+
+### Update
+
+Once the project is set up, this is how you update it.
 
 ```bash
-# Delete the CloudFormation Stack
+# Update the Docker Image
+docker build -t todo-api .
+docker tag todo-api:latest 937253175635.dkr.ecr.us-east-1.amazonaws.com/todo-api:latest
+docker push 937253175635.dkr.ecr.us-east-1.amazonaws.com/todo-api:latest
+
+# Update the service
+aws ecs update-service \
+  --profile main-admin \
+  --cluster todo-api-cluster \
+  --service todo-api-service \
+  --force-new-deployment
+```
+
+### Teardown
+
+```bash
+# Delete the CloudFormation Stacks
 aws cloudformation delete-stack --profile main-admin --stack-name todo-api-stack
+aws cloudformation delete-stack --profile main-admin --stack-name todo-alb-stack
 
 # Delete ECR repo
 aws ecr delete-repository --profile main-admin --repository todo-api --force
